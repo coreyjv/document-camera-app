@@ -105,6 +105,14 @@ function CameraProvider({ children }: CameraProviderProps) {
     [state.cameras, state.currentCamera, state.cameraSettings, zoom, resetZoom, selectCamera, rotate]
   )
 
+  if (!state.isInitializingCameraList && state.cameras.length === 0) {
+    return (
+      <div>
+        <p>Please connect a camera</p>
+      </div>
+    )
+  }
+
   return <CameraContext value={value}>{children}</CameraContext>
 }
 
