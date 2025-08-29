@@ -20,7 +20,13 @@ export type CameraRotationDirection = 'cw' | 'ccw'
 export type CameraAction =
   | { type: 'updating-camera-list'; data: { cameras: Pick<MediaDeviceInfo, 'deviceId' | 'label'>[] } }
   | { type: 'initializing-camera-list' }
-  | { type: 'initial-camera-list'; data: { cameras: Pick<MediaDeviceInfo, 'deviceId' | 'label'>[] } }
+  | {
+      type: 'initial-camera-list'
+      data: {
+        cameras: Pick<MediaDeviceInfo, 'deviceId' | 'label'>[]
+        lastUsedCamera?: (typeof MediaDeviceInfo.prototype)['deviceId']
+      }
+    }
   | { type: 'select-camera'; data: { id: (typeof MediaDeviceInfo.prototype)['deviceId'] } }
   | { type: 'rotate-camera'; data: { direction: CameraRotationDirection } }
   | { type: 'zoom-camera'; data: { step: number } }
@@ -34,7 +40,45 @@ export function cameraReducer(state: CameraState, action: CameraAction) {
         isInitializingCameraList: true
       }
     case 'updating-camera-list':
+      if (state.currentCamera !== undefined) {
+        const currentCamera = state.cameras.find(camera => camera.id === state.currentCamera?.id)
+
+        if (currentCamera !== undefined) {
+          // TODO filter out camera settings?
+          return {
+            ...state,
+            isInitializingCameraList: false,
+            currentCamera: undefined,
+            cameras: action.data.cameras.map(camera => ({ id: camera.deviceId, name: camera.label }))
+          }
+        }
+      }
+      return {
+        ...state,
+        isInitializingCameraList: false,
+        cameras: action.data.cameras.map(camera => ({ id: camera.deviceId, name: camera.label }))
+      }
     case 'initial-camera-list':
+      if (action.data.lastUsedCamera !== undefined) {
+        const currentCamera = action.data.cameras.find(camera => camera.deviceId === action.data.lastUsedCamera)
+
+        if (currentCamera) {
+          return {
+            ...state,
+            isInitializingCameraList: false,
+            cameras: action.data.cameras.map(camera => ({ id: camera.deviceId, name: camera.label })),
+            currentCamera: { id: currentCamera.deviceId, name: currentCamera.label },
+            cameraSettings: {
+              ...state.cameraSettings,
+              [currentCamera.deviceId]: {
+                angle: 0,
+                zoom: 1
+              }
+            }
+          }
+        }
+      }
+
       return {
         ...state,
         isInitializingCameraList: false,

@@ -41,6 +41,100 @@ describe('camera-reducer', () => {
     )
   })
 
+  test('When the camera list updates and the current camera is no longer connected set current camera to undefined', () => {
+    const currentState = {
+      ...defaultState,
+      cameras: [
+        { id: 'id-1', name: 'camera-1' },
+        { id: 'id-2', name: 'camera-2' }
+      ],
+      currentCamera: { id: 'id-1', name: 'camera-1' },
+      cameraSettings: {
+        'id-1': {
+          angle: 0,
+          zoom: 1
+        }
+      },
+      isInitializingCameraList: true
+    }
+
+    const newCameras = [
+      { deviceId: 'id-3', label: 'camera-3' },
+      { deviceId: 'id-4', label: 'camera-4' }
+    ]
+
+    const updatedState = cameraReducer(currentState, {
+      type: 'updating-camera-list',
+      data: { cameras: newCameras }
+    })
+
+    expect(updatedState.isInitializingCameraList).toBe(false)
+    expect(updatedState.currentCamera).toBeUndefined()
+    expect(updatedState.cameras).toEqual(
+      expect.arrayContaining([
+        { id: newCameras[0].deviceId, name: newCameras[0].label },
+        { id: newCameras[1].deviceId, name: newCameras[1].label }
+      ])
+    )
+  })
+
+  test('When the initial camera list is fetched if the last camera that was used exists make it the current camera', () => {
+    const currentState = {
+      ...defaultState,
+      cameras: [],
+      isInitializingCameraList: true
+    }
+
+    const newCameras = [
+      { deviceId: 'id-1', label: 'camera-1' },
+      { deviceId: 'id-2', label: 'camera-2' }
+    ]
+
+    const lastUsedCamera = 'id-2'
+
+    const updatedState = cameraReducer(currentState, {
+      type: 'initial-camera-list',
+      data: { cameras: newCameras, lastUsedCamera }
+    })
+
+    expect(updatedState.isInitializingCameraList).toBe(false)
+    expect(updatedState.currentCamera?.id).toEqual(lastUsedCamera)
+    expect(updatedState.cameraSettings[lastUsedCamera]).toEqual({ angle: 0, zoom: 1 })
+    expect(updatedState.cameras).toEqual(
+      expect.arrayContaining([
+        { id: newCameras[0].deviceId, name: newCameras[0].label },
+        { id: newCameras[1].deviceId, name: newCameras[1].label }
+      ])
+    )
+  })
+
+  test('When the initial camera list is fetched ensure currentCamera is null if lastUsedCamera is undefined', () => {
+    const currentState = {
+      ...defaultState,
+      cameras: [],
+      isInitializingCameraList: true
+    }
+
+    const newCameras = [
+      { deviceId: 'id-1', label: 'camera-1' },
+      { deviceId: 'id-2', label: 'camera-2' }
+    ]
+
+    const updatedState = cameraReducer(currentState, {
+      type: 'initial-camera-list',
+      data: { cameras: newCameras }
+    })
+
+    expect(updatedState.isInitializingCameraList).toBe(false)
+    expect(updatedState.currentCamera).toBeUndefined()
+    expect(updatedState.cameras).toEqual(
+      expect.arrayContaining([
+        { id: newCameras[0].deviceId, name: newCameras[0].label },
+        { id: newCameras[1].deviceId, name: newCameras[1].label }
+      ])
+    )
+  })
+
   test('When selecting a camera and it does not exist in the list do not change state', () => {
     const updatedState = cameraReducer(defaultState, { type: 'select-camera', data: { id: 'does-not-exist' } })
 

@@ -1,6 +1,7 @@
 import { createContext, use, useReducer, useEffect, useCallback, useMemo } from 'react'
 import type { ReactNode } from 'react'
 import { cameraReducer, type CameraRotationDirection, type CameraState } from './camera-reducer.ts'
+import { useLocalStorage } from './use-local-storage.ts'
 
 interface CameraProviderProps {
   children: ReactNode
@@ -19,6 +20,10 @@ interface CameraContext {
 const CameraContext = createContext<CameraContext | undefined>(undefined)
 
 function CameraProvider({ children }: CameraProviderProps) {
+  const [storedState, setStoredState] = useLocalStorage<{
+    lastUsedCamera: (typeof MediaDeviceInfo.prototype)['deviceId'] | undefined
+  }>('doccam', { lastUsedCamera: undefined })
+
   const [state, dispatch] = useReducer(cameraReducer, {
     cameras: [],
     isInitializingCameraList: false,
@@ -40,7 +45,7 @@ function CameraProvider({ children }: CameraProviderProps) {
       })
   }
 
-  async function fetchCameras() {
+  const fetchCameras = useCallback(async () => {
     try {
       // Request user permission.
       await navigator.mediaDevices.getUserMedia({ video: true })
@@ -48,12 +53,12 @@ function CameraProvider({ children }: CameraProviderProps) {
       const devices = await navigator.mediaDevices.enumerateDevices()
       const cameras = devices.filter(device => device.kind === 'videoinput')
 
-      dispatch({ type: 'initial-camera-list', data: { cameras } })
+      dispatch({ type: 'initial-camera-list', data: { cameras, lastUsedCamera: storedState.lastUsedCamera } })
     } catch (e) {
       // TODO error handling, permissins, etc.
       console.error(e)
     }
-  }
+  }, [storedState.lastUsedCamera])
 
   useEffect(() => {
     dispatch({ type: 'initializing-camera-list' })
@@ -65,7 +70,7 @@ function CameraProvider({ children }: CameraProviderProps) {
     return () => {
       navigator.mediaDevices.removeEventListener('devicechange', handleDeviceChange)
     }
-  }, [])
+  }, [fetchCameras])
 
   const rotate = useCallback<CameraContext['rotate']>(
     ({ direction }) => {
@@ -77,8 +82,10 @@ function CameraProvider({ children }: CameraProviderProps) {
   const selectCamera = useCallback<CameraContext['selectCamera']>(
     ({ id }) => {
       dispatch({ type: 'select-camera', data: { id } })
+
+      setStoredState({ ...storedState, lastUsedCamera: id })
     },
-    [dispatch]
+    [setStoredState, storedState]
   )
 
   const zoom = useCallback<CameraContext['zoom']>(
