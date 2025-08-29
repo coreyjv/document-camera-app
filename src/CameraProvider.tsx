@@ -1,25 +1,25 @@
-import {createContext, useContext, useReducer, useEffect, useCallback } from "react";
+import {createContext, use, useReducer, useEffect, useCallback, useMemo} from "react";
 import type { ReactNode } from "react";
 
-type CameraProviderProps = { children: ReactNode };
+interface CameraProviderProps { children: ReactNode };
 
-type Camera = {
+interface Camera {
     id: typeof MediaDeviceInfo.prototype['deviceId'], name: string
 }
 
-type CameraSettings = {
+interface CameraSettings {
     angle: number,
     zoom: number
 }
 
-type CameraState = {
+interface CameraState {
     cameras: Camera[],
     isInitializingCameraList: boolean,
     currentCamera?: Camera,
     cameraSettings: Record<Camera["id"], CameraSettings>
 }
 
-type CameraRotationDirection  = 'cw' | 'ccw'
+type CameraRotationDirection = 'cw' | 'ccw'
 
 type CameraAction = { type: 'update-camera-list', data: { cameras: MediaDeviceInfo[] } }
     | { type: 'initializing-camera-list' }
@@ -29,7 +29,7 @@ type CameraAction = { type: 'update-camera-list', data: { cameras: MediaDeviceIn
     | { type: 'zoom-camera', data: { step: number } }
     | { type: 'reset-zoom-camera' }
 
-type CameraContext = {
+interface CameraContext {
     cameras: CameraState['cameras'],
     currentCamera?: CameraState['currentCamera'],
     cameraSettings: CameraState['cameraSettings'],
@@ -134,7 +134,7 @@ function cameraReducer(state: CameraState, action: CameraAction) {
     }
 }
 
-export function CameraProvider({children}: CameraProviderProps) {
+function CameraProvider({children}: CameraProviderProps) {
     const [state, dispatch] = useReducer(cameraReducer, {
         cameras: [],
         isInitializingCameraList: false,
@@ -142,7 +142,7 @@ export function CameraProvider({children}: CameraProviderProps) {
         cameraSettings: {}
     })
 
-    async function handleDeviceChange() {
+    function handleDeviceChange() {
         try {
             const devices = await navigator.mediaDevices.enumerateDevices()
             const cameras = devices.filter(device => device.kind === 'videoinput')
@@ -172,7 +172,7 @@ export function CameraProvider({children}: CameraProviderProps) {
     useEffect(() => {
         dispatch({type: 'initializing-camera-list'})
 
-        fetchCameras()
+        void fetchCameras()
 
         navigator.mediaDevices.addEventListener('devicechange', handleDeviceChange);
 
@@ -198,18 +198,21 @@ export function CameraProvider({children}: CameraProviderProps) {
         dispatch({ type: 'reset-zoom-camera' })
     }, [dispatch])
 
-    const value = {
+    const value = useMemo(() => ({
         cameras: state.cameras, currentCamera: state.currentCamera, cameraSettings: state.cameraSettings,
         rotate, selectCamera, zoom, resetZoom
-    };
+    }), [state.cameras, state.currentCamera, state.cameraSettings, zoom, resetZoom, selectCamera, rotate]);
 
-    return <CameraContext.Provider value={value}>{children}</CameraContext.Provider>
+    return <CameraContext value={value}>{children}</CameraContext>
 }
 
-export function useCamera() {
-    const context = useContext(CameraContext)
+function useCamera() {
+    const context = use(CameraContext)
     if (context === undefined) {
         throw new Error('useCount must be used within a CameraContext')
     }
     return context
 }
+
+// eslint-disable-next-line react-refresh/only-export-components
+export { CameraProvider, useCamera }

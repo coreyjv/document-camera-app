@@ -13,11 +13,11 @@ export default tseslint.config([
     files: ['**/*.{ts,tsx}'],
     extends: [
       js.configs.recommended,
-      tseslint.configs.recommended,
+      // tseslint.configs.recommended,
       reactHooks.configs['recommended-latest'],
       reactRefresh.configs.vite,
         // Remove tseslint.configs.recommended and replace with this
-        ...tseslint.configs.recommendedTypeChecked,
+        // ...tseslint.configs.recommendedTypeChecked,
         // Alternatively, use this for stricter rules
         ...tseslint.configs.strictTypeChecked,
         // Optionally, add this for stylistic rules
@@ -30,6 +30,10 @@ export default tseslint.config([
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
+        parserOptions: {
+          projectService: true,
+            tsconfigRootDir: import.meta.dirname
+        }
     },
   },
 ])

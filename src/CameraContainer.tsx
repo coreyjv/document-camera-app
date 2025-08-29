@@ -19,7 +19,7 @@ export function CameraContainer() {
                     videoRef.current.srcObject = str
                 }
 
-                return { cleanup: () => str.getTracks().forEach(track => track.stop()) }
+                return { cleanup: () => { str.getTracks().forEach(track => { track.stop(); }) } }
             }
         }
 
@@ -29,8 +29,8 @@ export function CameraContainer() {
             isCurrent = false
             void promise.then(x => x?.cleanup())
         }
-    }, [currentCamera?.id, videoRef]);
+    }, [currentCamera, videoRef]);
     return (<div id={'camera-container'}>
-        {currentCamera?.id && <video ref={videoRef} style={{objectFit: 'contain', height: '100vh', transform: `rotate(${cameraSettings[currentCamera.id].angle}deg) scale(${cameraSettings[currentCamera.id].zoom})`}} autoPlay />}
+        {currentCamera?.id && <video ref={videoRef} style={{objectFit: 'contain', height: '100vh', transform: `rotate(${String(cameraSettings[currentCamera.id].angle)}deg) scale(${String(cameraSettings[currentCamera.id].zoom)})`}} autoPlay />}
     </div>)
 }
