@@ -1,36 +1,54 @@
-import { useEffect,useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import './CameraContainer.css'
-import {useCamera} from "./CameraProvider.tsx";
+import { useCamera } from './CameraProvider.tsx'
 
 export function CameraContainer() {
-    const { currentCamera, cameraSettings } = useCamera()
-    const videoRef = useRef<HTMLVideoElement>(null)
+  const { currentCamera, cameraSettings } = useCamera()
+  const videoRef = useRef<HTMLVideoElement>(null)
 
-    useEffect(() => {
-        let isCurrent = true
+  useEffect(() => {
+    let isCurrent = true
 
-        async function fetchStream() {
-            if (currentCamera) {
-                const str = await navigator.mediaDevices.getUserMedia({
-                    video: { deviceId: { exact: currentCamera.id } }
-                });
+    async function fetchStream() {
+      if (currentCamera) {
+        const str = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: { exact: currentCamera.id } }
+        })
 
-                if (isCurrent && videoRef.current) {
-                    videoRef.current.srcObject = str
-                }
-
-                return { cleanup: () => { str.getTracks().forEach(track => { track.stop(); }) } }
-            }
+        if (isCurrent && videoRef.current) {
+          videoRef.current.srcObject = str
         }
 
-        const promise = fetchStream()
-
-        return () => {
-            isCurrent = false
-            void promise.then(x => x?.cleanup())
+        return {
+          cleanup: () => {
+            str.getTracks().forEach(track => {
+              track.stop()
+            })
+          }
         }
-    }, [currentCamera, videoRef]);
-    return (<div id={'camera-container'}>
-        {currentCamera?.id && <video ref={videoRef} style={{objectFit: 'contain', height: '100vh', transform: `rotate(${String(cameraSettings[currentCamera.id].angle)}deg) scale(${String(cameraSettings[currentCamera.id].zoom)})`}} autoPlay />}
-    </div>)
+      }
+    }
+
+    const promise = fetchStream()
+
+    return () => {
+      isCurrent = false
+      void promise.then(x => x?.cleanup())
+    }
+  }, [currentCamera, videoRef])
+  return (
+    <div id={'camera-container'}>
+      {currentCamera?.id && (
+        <video
+          ref={videoRef}
+          style={{
+            objectFit: 'contain',
+            height: '100vh',
+            transform: `rotate(${String(cameraSettings[currentCamera.id].angle)}deg) scale(${String(cameraSettings[currentCamera.id].zoom)})`
+          }}
+          autoPlay
+        />
+      )}
+    </div>
+  )
 }
