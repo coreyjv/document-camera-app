@@ -143,15 +143,14 @@ function CameraProvider({children}: CameraProviderProps) {
     })
 
     function handleDeviceChange() {
-        try {
-            const devices = await navigator.mediaDevices.enumerateDevices()
+        navigator.mediaDevices.enumerateDevices().then(devices => {
             const cameras = devices.filter(device => device.kind === 'videoinput')
 
             dispatch({type: 'update-camera-list', data: {cameras}})
-        } catch (e) {
+        }).catch((error: unknown) => {
             // TODO error handling, permissins, etc.
-            console.error(e)
-        }
+            console.error(error)
+        })
     }
 
     async function fetchCameras() {
