@@ -1,8 +1,47 @@
-import {createContext, useContext, useReducer, useEffect, type ReactNode, useCallback} from "react";
+import {createContext, useContext, useReducer, useEffect, useCallback } from "react";
+import type { ReactNode } from "react";
 
-const CameraContext = createContext()
+type CameraProviderProps = { children: ReactNode };
 
-function cameraReducer(state, action) {
+type Camera = {
+    id: typeof MediaDeviceInfo.prototype['deviceId'], name: string
+}
+
+type CameraSettings = {
+    angle: number,
+    zoom: number
+}
+
+type CameraState = {
+    cameras: Camera[],
+    isInitializingCameraList: boolean,
+    currentCamera?: Camera,
+    cameraSettings: Record<Camera["id"], CameraSettings>
+}
+
+type CameraRotationDirection  = 'cw' | 'ccw'
+
+type CameraAction = { type: 'update-camera-list', data: { cameras: MediaDeviceInfo[] } }
+    | { type: 'initializing-camera-list' }
+    | { type: 'initial-camera-list', data: { cameras: MediaDeviceInfo[] } }
+    | { type: 'select-camera', data: { id: typeof MediaDeviceInfo.prototype['deviceId'] } }
+    | { type: 'rotate-camera', data: { direction: CameraRotationDirection } }
+    | { type: 'zoom-camera', data: { step: number } }
+    | { type: 'reset-zoom-camera' }
+
+type CameraContext = {
+    cameras: CameraState['cameras'],
+    currentCamera?: CameraState['currentCamera'],
+    cameraSettings: CameraState['cameraSettings'],
+    rotate: ({ direction }: { direction: CameraRotationDirection }) => void,
+    zoom: ({ step }: { step: number }) => void,
+    resetZoom: () => void,
+    selectCamera: ({ id }: { id: typeof MediaDeviceInfo.prototype['deviceId'] }) => void,
+}
+
+const CameraContext = createContext<CameraContext | undefined>(undefined)
+
+function cameraReducer(state: CameraState, action: CameraAction) {
     console.log({state, action});
     switch (action.type) {
         case 'update-camera-list':
@@ -19,17 +58,22 @@ function cameraReducer(state, action) {
             }
         case 'select-camera': {
             const currentCamera = state.cameras.find(camera => camera.id === action.data.id);
-            return {
-                ...state,
-                currentCamera,
-                cameraSettings: {
-                    ...state.cameraSettings,
-                    [currentCamera.id]: {
-                        angle: 0,
-                        zoom: 1
+
+            if (currentCamera) {
+                return {
+                    ...state,
+                    currentCamera,
+                    cameraSettings: {
+                        ...state.cameraSettings,
+                        [currentCamera.id]: {
+                            angle: 0,
+                            zoom: 1
+                        }
                     }
                 }
             }
+
+            return state
         }
         case 'rotate-camera': {
             if (state.currentCamera) {
@@ -87,12 +131,10 @@ function cameraReducer(state, action) {
 
             return state
         }
-        default:
-            console.error(`Unknown action type ${action.type}`);
     }
 }
 
-function CameraProvider({children}: { children: ReactNode }) {
+export function CameraProvider({children}: CameraProviderProps) {
     const [state, dispatch] = useReducer(cameraReducer, {
         cameras: [],
         isInitializingCameraList: false,
@@ -140,21 +182,21 @@ function CameraProvider({children}: { children: ReactNode }) {
 
     }, []);
 
-    const rotate = useCallback(({direction}) => {
+    const rotate = useCallback<CameraContext['rotate']>(({ direction }) => {
         dispatch({type: 'rotate-camera', data: {direction}})
-    })
+    }, [dispatch])
 
-    const selectCamera = useCallback(({id}) => {
+    const selectCamera = useCallback<CameraContext['selectCamera']>(({id}) => {
         dispatch({type: 'select-camera', data: {id}})
-    })
+    }, [dispatch])
 
-    const zoom = useCallback(({step}) => {
+    const zoom = useCallback<CameraContext['zoom']>(({step}) => {
         dispatch({ type: 'zoom-camera', data: { step }})
-    })
+    }, [dispatch])
 
-    const resetZoom = useCallback(() => {
+    const resetZoom = useCallback<CameraContext['resetZoom']>(() => {
         dispatch({ type: 'reset-zoom-camera' })
-    })
+    }, [dispatch])
 
     const value = {
         cameras: state.cameras, currentCamera: state.currentCamera, cameraSettings: state.cameraSettings,
@@ -164,12 +206,10 @@ function CameraProvider({children}: { children: ReactNode }) {
     return <CameraContext.Provider value={value}>{children}</CameraContext.Provider>
 }
 
-function useCamera() {
+export function useCamera() {
     const context = useContext(CameraContext)
     if (context === undefined) {
         throw new Error('useCount must be used within a CameraContext')
     }
     return context
 }
-
-export {CameraProvider, useCamera}

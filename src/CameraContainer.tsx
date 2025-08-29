@@ -1,11 +1,10 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect,useRef } from 'react'
 import './CameraContainer.css'
 import {useCamera} from "./CameraProvider.tsx";
 
 export function CameraContainer() {
     const { currentCamera, cameraSettings } = useCamera()
-    const videoRef = useRef(null)
-    // const [stream, setStream] = useState(null)
+    const videoRef = useRef<HTMLVideoElement>(null)
 
     useEffect(() => {
         let isCurrent = true
@@ -16,7 +15,7 @@ export function CameraContainer() {
                     video: { deviceId: { exact: currentCamera.id } }
                 });
 
-                if (isCurrent) {
+                if (isCurrent && videoRef.current) {
                     videoRef.current.srcObject = str
                 }
 
