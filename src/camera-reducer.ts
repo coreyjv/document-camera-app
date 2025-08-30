@@ -11,6 +11,7 @@ interface CameraSettings {
 export interface CameraState {
   cameras: Camera[]
   isInitializingCameraList: boolean
+  lastUsedCamera?: Camera['id']
   currentCamera?: Camera
   cameraSettings: Record<Camera['id'], CameraSettings>
 }
@@ -24,7 +25,6 @@ export type CameraAction =
       type: 'initial-camera-list'
       data: {
         cameras: Pick<MediaDeviceInfo, 'deviceId' | 'label'>[]
-        lastUsedCamera?: (typeof MediaDeviceInfo.prototype)['deviceId']
       }
     }
   | { type: 'select-camera'; data: { id: (typeof MediaDeviceInfo.prototype)['deviceId'] } }
@@ -43,6 +43,20 @@ export function cameraReducer(state: CameraState, action: CameraAction) {
       if (state.currentCamera !== undefined) {
         const currentCamera = state.cameras.find(camera => camera.id === state.currentCamera?.id)
 
+        const lastCamera = action.data.cameras.find(camera => camera.deviceId === state.lastUsedCamera)
+
+        if (lastCamera !== undefined) {
+          return {
+            ...state,
+            isInitializingCameraList: false,
+            currentCamera: {
+              id: lastCamera.deviceId,
+              name: lastCamera.label
+            },
+            cameras: action.data.cameras.map(camera => ({ id: camera.deviceId, name: camera.label }))
+          }
+        }
+
         if (currentCamera !== undefined) {
           // TODO filter out camera settings?
           return {
@@ -59,8 +73,8 @@ export function cameraReducer(state: CameraState, action: CameraAction) {
         cameras: action.data.cameras.map(camera => ({ id: camera.deviceId, name: camera.label }))
       }
     case 'initial-camera-list':
-      if (action.data.lastUsedCamera !== undefined) {
-        const currentCamera = action.data.cameras.find(camera => camera.deviceId === action.data.lastUsedCamera)
+      if (state.lastUsedCamera !== undefined) {
+        const currentCamera = action.data.cameras.find(camera => camera.deviceId === state.lastUsedCamera)
 
         if (currentCamera) {
           return {
@@ -71,8 +85,10 @@ export function cameraReducer(state: CameraState, action: CameraAction) {
             cameraSettings: {
               ...state.cameraSettings,
               [currentCamera.deviceId]: {
-                angle: 0,
-                zoom: 1
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                angle: state.cameraSettings[currentCamera.deviceId]?.angle ?? 0,
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                zoom: state.cameraSettings[currentCamera.deviceId]?.zoom ?? 1
               }
             }
           }
@@ -91,11 +107,14 @@ export function cameraReducer(state: CameraState, action: CameraAction) {
         return {
           ...state,
           currentCamera,
+          lastUsedCamera: currentCamera.id,
           cameraSettings: {
             ...state.cameraSettings,
             [currentCamera.id]: {
-              angle: 0,
-              zoom: 1
+              // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+              angle: state.cameraSettings[currentCamera.id]?.angle ?? 0,
+              // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+              zoom: state.cameraSettings[currentCamera.id]?.zoom ?? 1
             }
           }
         }
