@@ -1,4 +1,4 @@
-import { createContext, use, useEffect, useState } from 'react'
+import { createContext, useEffect, useMemo, useState } from 'react'
 
 type Theme = 'dark' | 'light' | 'system'
 
@@ -48,13 +48,16 @@ export function ThemeProvider({
     root.classList.add(theme)
   }, [theme])
 
-  const value = {
-    theme,
-    setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme)
-      setTheme(theme)
-    }
-  }
+  const value = useMemo(
+    () => ({
+      theme,
+      setTheme: (theme: Theme) => {
+        localStorage.setItem(storageKey, theme)
+        setTheme(theme)
+      }
+    }),
+    [storageKey, theme]
+  )
 
   return (
     <ThemeProviderContext {...props} value={value}>
@@ -63,11 +66,12 @@ export function ThemeProvider({
   )
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
-export const useTheme = () => {
-  const context = use(ThemeProviderContext)
-
-  if (context === undefined) throw new Error('useTheme must be used within a ThemeProvider')
-
-  return context
-}
+// // eslint-disable-next-line react-refresh/only-export-components
+// export const useTheme = () => {
+//   const context = use(ThemeProviderContext)
+//
+//   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+//   if (context === undefined) throw new Error('useTheme must be used within a ThemeProvider')
+//
+//   return context
+// }
