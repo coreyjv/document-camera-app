@@ -41,6 +41,7 @@ export function CameraContainer() {
       {currentCamera?.id && (
         <video
           ref={videoRef}
+          disablePictureInPicture
           style={{
             objectFit: 'contain',
             height: '100vh',

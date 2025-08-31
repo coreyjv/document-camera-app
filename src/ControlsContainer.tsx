@@ -1,75 +1,77 @@
 import './ControlsContainer.css'
 import { useCamera } from './CameraProvider.tsx'
 import { AutoHide } from './AutoHide.tsx'
+import { Button } from '@/components/ui/button'
+import { ZoomIn, ZoomOut, RotateCcw, RotateCw } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 export function ControlsContainer() {
   const { cameras, rotate, currentCamera, selectCamera, zoom, resetZoom, cameraSettings } = useCamera()
 
   return (
     <AutoHide disabled={cameras.length === 0}>
-      <div id={'controls-container'}>
-        <select
-          id="camera-select"
-          defaultValue={'select-a-camera'}
-          value={currentCamera?.id}
-          onChange={e => {
-            selectCamera({ id: e.target.value })
+      <div id="controls-container" className="flex flex-wrap items-center gap-2 p-4 rounded-lg bg-muted">
+        <Select
+          onValueChange={value => {
+            selectCamera({ id: value })
           }}
+          value={currentCamera?.id}
         >
-          <option disabled value={'select-a-camera'}>
-            Select a camera...
-          </option>
-          {cameras.map(cam => (
-            <option key={cam.id} value={cam.id}>
-              {cam.name}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          disabled={currentCamera === undefined}
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Select a camera..." />
+          </SelectTrigger>
+          <SelectContent>
+            {cameras.map(cam => (
+              <SelectItem key={cam.id} value={cam.id}>
+                {cam.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Button
+          disabled={!currentCamera}
           onClick={() => {
             rotate({ direction: 'cw' })
           }}
+          size="icon"
+          variant="outline"
         >
-          Rotate CW
-        </button>
-        <button
-          type="button"
-          disabled={currentCamera === undefined}
+          <RotateCw />
+        </Button>
+        <Button
+          disabled={!currentCamera}
           onClick={() => {
             rotate({ direction: 'ccw' })
           }}
+          size="icon"
+          variant="outline"
         >
-          Rotate CCW
-        </button>
-        <button
-          type="button"
-          disabled={currentCamera === undefined}
+          <RotateCcw />
+        </Button>
+        <Button
+          disabled={!currentCamera}
           onClick={() => {
             zoom({ step: -1 })
           }}
+          size="icon"
+          variant="outline"
         >
-          Zoom Out
-        </button>
-        <button
-          type="button"
-          disabled={currentCamera === undefined}
-          onClick={() => {
-            resetZoom()
-          }}
-        >
+          <ZoomOut />
+        </Button>
+        <Button disabled={!currentCamera} onClick={resetZoom} variant="ghost">
           {currentCamera ? `${String(cameraSettings[currentCamera.id].zoom)}x` : ''}
-        </button>
-        <button
-          type="button"
-          disabled={currentCamera === undefined}
+        </Button>
+        <Button
+          disabled={!currentCamera}
           onClick={() => {
             zoom({ step: 1 })
           }}
+          size="icon"
+          variant="outline"
         >
-          Zoom In
-        </button>
+          <ZoomIn />
+        </Button>
       </div>
     </AutoHide>
   )
