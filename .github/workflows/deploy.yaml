@@ -40,7 +40,7 @@ jobs:
       - name: Test
         run: npm run test
       - name: Lint
-        run: eslint .
+        run: npm run lint
       - name: Format
         run: npx prettier . --check
       - name: Build
