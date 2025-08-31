@@ -30,5 +30,7 @@ export default defineConfig({
 
   build: {
     sourcemap: true
-  }
+  },
+  // Adding for GH Pages deployment
+  base: '/document-camera-app/'
 })
