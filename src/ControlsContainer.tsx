@@ -1,33 +1,51 @@
 import { useCamera } from './CameraProvider.tsx'
 import { AutoHide } from './AutoHide.tsx'
 import { Button } from '@/components/ui/button'
-import { ZoomIn, ZoomOut, RotateCcw, RotateCw } from 'lucide-react'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ZoomIn, ZoomOut, RotateCcw, RotateCw, Eye, EyeOff } from 'lucide-react'
+import { PopoverContent, Popover, PopoverTrigger } from '@/components/ui/popover.tsx'
+import { Fragment } from 'react'
 
 export function ControlsContainer() {
-  const { cameras, rotate, currentCamera, selectCamera, zoom, resetZoom, cameraSettings } = useCamera()
+  const { cameras, rotate, currentCamera, selectCamera, toggleCamera, zoom, resetZoom, cameraSettings } = useCamera()
 
   return (
     <AutoHide disabled={cameras.length === 0}>
       <div className="absolute ml-auto mr-auto mb-4 left-1/2 transform-[translateX(-50%)] bottom-0 flex flex-wrap items-center gap-2 p-4 rounded-lg bg-muted">
-        <Select
-          onValueChange={value => {
-            selectCamera({ id: value })
-          }}
-          value={currentCamera?.id}
-        >
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Select a camera..." />
-          </SelectTrigger>
-          <SelectContent>
-            {cameras.map(cam => (
-              <SelectItem key={cam.id} value={cam.id}>
-                {cam.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline">{currentCamera?.name ?? 'Select a camera...'}</Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-4">
+            <div className="grid grid-cols-[max-content_max-content_max-content] gap-4 items-center">
+              {cameras.map(cam => (
+                <Fragment key={cam.id}>
+                  <Button
+                    disabled={!cam.enabled}
+                    variant={currentCamera?.id === cam.id ? 'ghost' : 'outline'}
+                    className="col-start-1"
+                    onClick={() => {
+                      selectCamera({ id: cam.id })
+                    }}
+                  >
+                    {cam.name}
+                  </Button>
+                  {/*{currentCamera?.id === cam.id && <Check />}*/}
+                  <Button
+                    disabled={currentCamera?.id === cam.id}
+                    size="icon"
+                    variant="outline"
+                    className="col-start-2"
+                    onClick={() => {
+                      toggleCamera({ id: cam.id })
+                    }}
+                  >
+                    {cam.enabled ? <Eye /> : <EyeOff />}
+                  </Button>
+                </Fragment>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
         <Button
           disabled={!currentCamera}
           onClick={() => {

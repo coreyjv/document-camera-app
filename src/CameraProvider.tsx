@@ -14,6 +14,7 @@ interface CameraContext {
   zoom: ({ step }: { step: number }) => void
   resetZoom: () => void
   selectCamera: ({ id }: { id: (typeof MediaDeviceInfo.prototype)['deviceId'] }) => void
+  toggleCamera: ({ id }: { id: (typeof MediaDeviceInfo.prototype)['deviceId'] }) => void
 }
 
 const SETTINGS_KEY = 'cameraSettings'
@@ -25,6 +26,7 @@ function CameraProvider({ children }: CameraProviderProps) {
     cameraReducer,
     {
       cameras: [],
+      disabledCameras: [],
       isInitializingCameraList: false,
       currentCamera: undefined,
       cameraSettings: {}
@@ -33,8 +35,19 @@ function CameraProvider({ children }: CameraProviderProps) {
       const store = localStorage.getItem(SETTINGS_KEY)
 
       if (store) {
-        const storedState = JSON.parse(store) as Pick<CameraState, 'lastUsedCamera' | 'cameraSettings'>
-        return { ...storedState, cameras: [], isInitializingCameraList: false, currentCamera: undefined }
+        const storedState = JSON.parse(store) as Pick<
+          CameraState,
+          'lastUsedCamera' | 'cameraSettings' | 'disabledCameras'
+        >
+        return {
+          ...storedState,
+          // because it may not have previously been stored in local storage
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          disabledCameras: storedState.disabledCameras ?? [],
+          cameras: [],
+          isInitializingCameraList: false,
+          currentCamera: undefined
+        }
       }
 
       return init
@@ -87,7 +100,11 @@ function CameraProvider({ children }: CameraProviderProps) {
   useEffect(() => {
     localStorage.setItem(
       SETTINGS_KEY,
-      JSON.stringify({ lastUsedCamera: state.lastUsedCamera, cameraSettings: state.cameraSettings })
+      JSON.stringify({
+        lastUsedCamera: state.lastUsedCamera,
+        cameraSettings: state.cameraSettings,
+        disabledCameras: state.disabledCameras
+      })
     )
   }, [state])
 
@@ -103,6 +120,10 @@ function CameraProvider({ children }: CameraProviderProps) {
     dispatch({ type: 'zoom-camera', data: { step } })
   }, [])
 
+  const toggleCamera = useCallback<CameraContext['toggleCamera']>(({ id }) => {
+    dispatch({ type: 'toggle-camera', data: { id } })
+  }, [])
+
   const resetZoom = useCallback<CameraContext['resetZoom']>(() => {
     dispatch({ type: 'reset-zoom-camera' })
   }, [dispatch])
@@ -114,10 +135,11 @@ function CameraProvider({ children }: CameraProviderProps) {
       cameraSettings: state.cameraSettings,
       rotate,
       selectCamera,
+      toggleCamera,
       zoom,
       resetZoom
     }),
-    [state.cameras, state.currentCamera, state.cameraSettings, zoom, resetZoom, selectCamera, rotate]
+    [state.cameras, state.currentCamera, state.cameraSettings, zoom, resetZoom, selectCamera, toggleCamera, rotate]
   )
 
   if (!state.isInitializingCameraList && state.cameras.length === 0) {

@@ -1,6 +1,7 @@
 interface Camera {
   id: (typeof MediaDeviceInfo.prototype)['deviceId']
   name: string
+  enabled: boolean
 }
 
 interface CameraSettings {
@@ -10,6 +11,7 @@ interface CameraSettings {
 
 export interface CameraState {
   cameras: Camera[]
+  disabledCameras: Camera['id'][]
   isInitializingCameraList: boolean
   lastUsedCamera?: Camera['id']
   currentCamera?: Camera
@@ -28,11 +30,12 @@ export type CameraAction =
       }
     }
   | { type: 'select-camera'; data: { id: (typeof MediaDeviceInfo.prototype)['deviceId'] } }
+  | { type: 'toggle-camera'; data: { id: (typeof MediaDeviceInfo.prototype)['deviceId'] } }
   | { type: 'rotate-camera'; data: { direction: CameraRotationDirection } }
   | { type: 'zoom-camera'; data: { step: number } }
   | { type: 'reset-zoom-camera' }
 
-export function cameraReducer(state: CameraState, action: CameraAction) {
+export function cameraReducer(state: CameraState, action: CameraAction): CameraState {
   switch (action.type) {
     case 'initializing-camera-list':
       return {
@@ -51,9 +54,14 @@ export function cameraReducer(state: CameraState, action: CameraAction) {
             isInitializingCameraList: false,
             currentCamera: {
               id: lastCamera.deviceId,
-              name: lastCamera.label
+              name: lastCamera.label,
+              enabled: true
             },
-            cameras: action.data.cameras.map(camera => ({ id: camera.deviceId, name: camera.label }))
+            cameras: action.data.cameras.map(camera => ({
+              id: camera.deviceId,
+              name: camera.label,
+              enabled: !state.disabledCameras.some(disabledCamera => disabledCamera === camera.deviceId)
+            }))
           }
         }
 
@@ -63,14 +71,23 @@ export function cameraReducer(state: CameraState, action: CameraAction) {
             ...state,
             isInitializingCameraList: false,
             currentCamera: undefined,
-            cameras: action.data.cameras.map(camera => ({ id: camera.deviceId, name: camera.label }))
+            cameras: action.data.cameras.map(camera => ({
+              id: camera.deviceId,
+              name: camera.label,
+              enabled: !state.disabledCameras.some(disabledCamera => disabledCamera === camera.deviceId)
+            }))
           }
         }
       }
+
       return {
         ...state,
         isInitializingCameraList: false,
-        cameras: action.data.cameras.map(camera => ({ id: camera.deviceId, name: camera.label }))
+        cameras: action.data.cameras.map(camera => ({
+          id: camera.deviceId,
+          name: camera.label,
+          enabled: !state.disabledCameras.some(disabledCamera => disabledCamera === camera.deviceId)
+        }))
       }
     case 'initial-camera-list':
       if (state.lastUsedCamera !== undefined) {
@@ -80,8 +97,12 @@ export function cameraReducer(state: CameraState, action: CameraAction) {
           return {
             ...state,
             isInitializingCameraList: false,
-            cameras: action.data.cameras.map(camera => ({ id: camera.deviceId, name: camera.label })),
-            currentCamera: { id: currentCamera.deviceId, name: currentCamera.label },
+            cameras: action.data.cameras.map(camera => ({
+              id: camera.deviceId,
+              name: camera.label,
+              enabled: !state.disabledCameras.some(disabledCamera => disabledCamera === camera.deviceId)
+            })),
+            currentCamera: { id: currentCamera.deviceId, name: currentCamera.label, enabled: true },
             cameraSettings: {
               ...state.cameraSettings,
               [currentCamera.deviceId]: {
@@ -98,12 +119,19 @@ export function cameraReducer(state: CameraState, action: CameraAction) {
       return {
         ...state,
         isInitializingCameraList: false,
-        cameras: action.data.cameras.map(camera => ({ id: camera.deviceId, name: camera.label }))
+        cameras: action.data.cameras.map(camera => ({
+          id: camera.deviceId,
+          name: camera.label,
+          enabled: !state.disabledCameras.some(disabledCamera => disabledCamera === camera.deviceId)
+        }))
       }
     case 'select-camera': {
       const currentCamera = state.cameras.find(camera => camera.id === action.data.id)
 
       if (currentCamera) {
+        if (!currentCamera.enabled) {
+          return state
+        }
         return {
           ...state,
           currentCamera,
@@ -121,6 +149,29 @@ export function cameraReducer(state: CameraState, action: CameraAction) {
       }
 
       return state
+    }
+    case 'toggle-camera': {
+      if (state.currentCamera?.id === action.data.id) {
+        // We do not want to allow toggling of currently displayed camera.
+        return state
+      }
+
+      const updatedCameras = state.cameras.map(cam => {
+        if (cam.id === action.data.id) {
+          return {
+            ...cam,
+            enabled: !cam.enabled
+          }
+        }
+
+        return cam
+      })
+
+      return {
+        ...state,
+        cameras: updatedCameras,
+        disabledCameras: updatedCameras.filter(camera => !camera.enabled).map(camera => camera.id)
+      }
     }
     case 'rotate-camera': {
       if (state.currentCamera) {
