@@ -1,4 +1,3 @@
-import './ControlsContainer.css'
 import { useCamera } from './CameraProvider.tsx'
 import { AutoHide } from './AutoHide.tsx'
 import { Button } from '@/components/ui/button'
@@ -10,7 +9,7 @@ export function ControlsContainer() {
 
   return (
     <AutoHide disabled={cameras.length === 0}>
-      <div id="controls-container" className="flex flex-wrap items-center gap-2 p-4 rounded-lg bg-muted">
+      <div className="absolute ml-auto mr-auto mb-4 left-1/2 transform-[translateX(-50%)] bottom-0 flex flex-wrap items-center gap-2 p-4 rounded-lg bg-muted">
         <Select
           onValueChange={value => {
             selectCamera({ id: value })

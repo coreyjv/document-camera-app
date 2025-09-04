@@ -41,20 +41,6 @@ function CameraProvider({ children }: CameraProviderProps) {
     }
   )
 
-  function handleDeviceChange() {
-    navigator.mediaDevices
-      .enumerateDevices()
-      .then(devices => {
-        const cameras = devices.filter(device => device.kind === 'videoinput')
-
-        dispatch({ type: 'updating-camera-list', data: { cameras } })
-      })
-      .catch((error: unknown) => {
-        // TODO error handling, permissins, etc.
-        console.error(error)
-      })
-  }
-
   const fetchCameras = useCallback(async () => {
     try {
       // Request user permission.
@@ -75,11 +61,27 @@ function CameraProvider({ children }: CameraProviderProps) {
 
     void fetchCameras()
 
-    navigator.mediaDevices.addEventListener('devicechange', handleDeviceChange)
+    const controller = new AbortController()
 
-    return () => {
-      navigator.mediaDevices.removeEventListener('devicechange', handleDeviceChange)
-    }
+    navigator.mediaDevices.addEventListener(
+      'devicechange',
+      () => {
+        navigator.mediaDevices
+          .enumerateDevices()
+          .then(devices => {
+            const cameras = devices.filter(device => device.kind === 'videoinput')
+
+            dispatch({ type: 'updating-camera-list', data: { cameras } })
+          })
+          .catch((error: unknown) => {
+            // TODO error handling, permissins, etc.
+            console.error(error)
+          })
+      },
+      { signal: controller.signal }
+    )
+
+    return void controller.abort
   }, [fetchCameras])
 
   useEffect(() => {
