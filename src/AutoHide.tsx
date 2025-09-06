@@ -43,18 +43,16 @@ const AutoHide = ({ timeoutMs = 3000, disabled = false, children }: AutoHideProp
       return
     }
 
-    const events = ['mousemove', 'keydown', 'mousedown', 'touchstart']
+    const controller = new AbortController()
 
-    for (const event of events) {
-      window.addEventListener(event, resetTimer)
+    for (const event of ['mousemove', 'keydown', 'mousedown', 'touchstart']) {
+      window.addEventListener(event, resetTimer, { signal: controller.signal })
     }
 
     resetTimer()
 
     return () => {
-      for (const event of events) {
-        window.removeEventListener(event, resetTimer)
-      }
+      controller.abort()
 
       window.clearTimeout(timerRef.current)
     }

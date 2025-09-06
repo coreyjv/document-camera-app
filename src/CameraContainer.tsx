@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react'
-import './CameraContainer.css'
 import { useCamera } from './CameraProvider.tsx'
 
 export function CameraContainer() {
@@ -37,7 +36,7 @@ export function CameraContainer() {
     }
   }, [currentCamera, videoRef])
   return (
-    <div id={'camera-container'}>
+    <div className="max-w-full flex justify-center items-center h-screen bg-background">
       {currentCamera?.id && (
         <video
           ref={videoRef}
